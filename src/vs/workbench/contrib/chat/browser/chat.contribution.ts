@@ -197,6 +197,21 @@ configurationRegistry.registerConfiguration({
 			description: nls.localize('chat.detectParticipant.enabled', "Enables chat participant autodetection for panel chat."),
 			default: true
 		},
+		'chat.modes.ask.instructions': {
+			type: 'string',
+			description: nls.localize('chat.modes.ask.instructions', "Custom instructions for Ask mode. These instructions will be prepended to every Ask mode conversation."),
+			default: ''
+		},
+		'chat.modes.edit.instructions': {
+			type: 'string',
+			description: nls.localize('chat.modes.edit.instructions', "Custom instructions for Edit mode. These instructions will be prepended to every Edit mode conversation."),
+			default: ''
+		},
+		'chat.modes.agent.instructions': {
+			type: 'string',
+			description: nls.localize('chat.modes.agent.instructions', "Custom instructions for Agent mode. These instructions will be prepended to every Agent mode conversation."),
+			default: ''
+		},
 		'chat.renderRelatedFiles': {
 			type: 'boolean',
 			description: nls.localize('chat.renderRelatedFiles', "Controls whether related files should be rendered in the chat input."),

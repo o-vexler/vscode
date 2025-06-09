@@ -6,6 +6,7 @@
 import { Emitter, Event } from '../../../../base/common/event.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { localize } from '../../../../nls.js';
+import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IContextKey, IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
@@ -36,7 +37,8 @@ export class ChatModeService extends Disposable implements IChatModeService {
 		@IPromptsService private readonly promptsService: IPromptsService,
 		@IChatAgentService private readonly chatAgentService: IChatAgentService,
 		@IContextKeyService contextKeyService: IContextKeyService,
-		@ILogService private readonly logService: ILogService
+		@ILogService private readonly logService: ILogService,
+		@IConfigurationService private readonly configurationService: IConfigurationService
 	) {
 		super();
 
@@ -72,14 +74,15 @@ export class ChatModeService extends Disposable implements IChatModeService {
 	}
 
 	private getBuiltinModes(): IChatMode[] {
+		const modes = ChatMode2.createModes(this.configurationService);
 		const builtinModes: IChatMode[] = [
-			ChatMode2.Ask,
+			modes.Ask,
 		];
 
 		if (this.chatAgentService.hasToolsAgent) {
-			builtinModes.push(ChatMode2.Agent);
+			builtinModes.push(modes.Agent);
 		}
-		builtinModes.push(ChatMode2.Edit);
+		builtinModes.push(modes.Edit);
 		return builtinModes;
 	}
 }
@@ -151,7 +154,8 @@ export class CustomChatMode implements IChatMode {
 export class BuiltinChatMode implements IChatMode {
 	constructor(
 		public readonly kind: ChatMode,
-		public readonly description: string
+		public readonly description: string,
+		private readonly configurationService?: IConfigurationService
 	) { }
 
 	get id(): string {
@@ -163,6 +167,29 @@ export class BuiltinChatMode implements IChatMode {
 		return modeToString(this.kind);
 	}
 
+	get body(): string | undefined {
+		if (!this.configurationService) {
+			return undefined;
+		}
+
+		const configKey = this.getConfigurationKey();
+		const customInstructions = this.configurationService.getValue<string>(configKey);
+		return customInstructions || undefined;
+	}
+
+	private getConfigurationKey(): string {
+		switch (this.kind) {
+			case ChatMode.Ask:
+				return 'chat.modes.ask.instructions';
+			case ChatMode.Edit:
+				return 'chat.modes.edit.instructions';
+			case ChatMode.Agent:
+				return 'chat.modes.agent.instructions';
+			default:
+				throw new Error(`Unknown chat mode: ${this.kind}`);
+		}
+	}
+
 	/**
 	 * Getters are not json-stringified
 	 */
@@ -171,7 +198,8 @@ export class BuiltinChatMode implements IChatMode {
 			id: this.id,
 			name: this.name,
 			description: this.description,
-			kind: this.kind
+			kind: this.kind,
+			body: this.body
 		};
 	}
 }
@@ -180,16 +208,41 @@ export namespace ChatMode2 {
 	export const Ask = new BuiltinChatMode(ChatMode.Ask, localize('chatDescription', "Ask Copilot"));
 	export const Edit = new BuiltinChatMode(ChatMode.Edit, localize('editsDescription', "Edit files in your workspace"));
 	export const Agent = new BuiltinChatMode(ChatMode.Agent, localize('agentDescription', "Edit files in your workspace in agent mode"));
+
+	export function createModes(configurationService: IConfigurationService): { Ask: BuiltinChatMode; Edit: BuiltinChatMode; Agent: BuiltinChatMode } {
+		return {
+			Ask: new BuiltinChatMode(ChatMode.Ask, localize('chatDescription', "Ask Copilot"), configurationService),
+			Edit: new BuiltinChatMode(ChatMode.Edit, localize('editsDescription', "Edit files in your workspace"), configurationService),
+			Agent: new BuiltinChatMode(ChatMode.Agent, localize('agentDescription', "Edit files in your workspace in agent mode"), configurationService)
+		};
+	}
 }
 
-export function validateChatMode2(mode: unknown): IChatMode | undefined {
+export function validateChatMode2(mode: unknown, configurationService?: IConfigurationService): IChatMode | undefined {
+	if (!configurationService) {
+		switch (mode) {
+			case ChatMode.Ask:
+				return ChatMode2.Ask;
+			case ChatMode.Edit:
+				return ChatMode2.Edit;
+			case ChatMode.Agent:
+				return ChatMode2.Agent;
+			default:
+				if (isIChatMode(mode)) {
+					return mode;
+				}
+				return undefined;
+		}
+	}
+
+	const modes = ChatMode2.createModes(configurationService);
 	switch (mode) {
 		case ChatMode.Ask:
-			return ChatMode2.Ask;
+			return modes.Ask;
 		case ChatMode.Edit:
-			return ChatMode2.Edit;
+			return modes.Edit;
 		case ChatMode.Agent:
-			return ChatMode2.Agent;
+			return modes.Agent;
 		default:
 			if (isIChatMode(mode)) {
 				return mode;
@@ -198,8 +251,12 @@ export function validateChatMode2(mode: unknown): IChatMode | undefined {
 	}
 }
 
-export function isBuiltinChatMode(mode: IChatMode): boolean {
-	return mode.id === ChatMode2.Ask.id ||
-		mode.id === ChatMode2.Edit.id ||
-		mode.id === ChatMode2.Agent.id;
+export function isBuiltinChatMode(mode: IChatMode, configurationService?: IConfigurationService): boolean {
+	if (!configurationService) {
+		return mode.kind === ChatMode.Ask || mode.kind === ChatMode.Edit || mode.kind === ChatMode.Agent;
+	}
+	const modes = ChatMode2.createModes(configurationService);
+	return mode.id === modes.Ask.id ||
+		mode.id === modes.Edit.id ||
+		mode.id === modes.Agent.id;
 }

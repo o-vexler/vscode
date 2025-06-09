@@ -573,7 +573,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 			return;
 		}
 
-		const mode2 = validateChatMode2(mode) ?? ChatMode2.Ask;
+		const mode2 = validateChatMode2(mode, this.configurationService) ?? ChatMode2.Ask;
 		this.setChatMode2(mode2, storeSelection);
 	}
 
@@ -664,7 +664,7 @@ export class ChatInputPart extends Disposable implements IHistoryNavigationWidge
 
 	private async validateCurrentChatMode() {
 		const currentMode = this._currentMode;
-		if (isBuiltinChatMode(currentMode)) {
+		if (isBuiltinChatMode(currentMode, this.configurationService)) {
 			return;
 		}
 

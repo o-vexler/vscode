@@ -143,7 +143,7 @@ class ToggleChatModeAction extends Action2 {
 		const arg = args.at(0) as IToggleChatModeArgs | undefined;
 		const chatSession = context.chatWidget.viewModel?.model;
 		const requestCount = chatSession?.getRequests().length ?? 0;
-		const switchToMode = validateChatMode2(arg?.mode) ?? this.getNextMode(context.chatWidget, requestCount, configurationService);
+		const switchToMode = validateChatMode2(arg?.mode, configurationService) ?? this.getNextMode(context.chatWidget, requestCount, configurationService);
 
 		if (switchToMode.id === context.chatWidget.input.currentMode2.id) {
 			return;
