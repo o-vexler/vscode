@@ -52,6 +52,7 @@ import { ChatViewModel, IChatResponseViewModel, isRequestVM, isResponseVM } from
 import { IChatInputState } from '../common/chatWidgetHistoryService.js';
 import { CodeBlockModelCollection } from '../common/codeBlockModelCollection.js';
 import { ChatAgentLocation, ChatMode } from '../common/constants.js';
+import { isBuiltinChatMode } from '../common/chatModes.js';
 import { ILanguageModelToolsService, IToolData, ToolSet } from '../common/languageModelToolsService.js';
 import { type TPromptMetadata } from '../common/promptSyntax/parsers/promptHeader/promptHeader.js';
 import { IMetadata, IPromptsService } from '../common/promptSyntax/service/promptsService.js';
@@ -1204,6 +1205,16 @@ export class ChatWidget extends Disposable implements IChatWidget {
 		return inputState;
 	}
 
+	private getModeInstructions(): string | undefined {
+		const currentMode = this.input.currentMode2;
+		// For custom modes from files, use the body
+		if (!isBuiltinChatMode(currentMode)) {
+			return currentMode.body;
+		}
+		// For built-in modes, use customInstructions
+		return currentMode.customInstructions || currentMode.body;
+	}
+
 	private _findPromptFileInContext(attachedContext: IChatRequestVariableEntry[]): URI | undefined {
 		for (const item of attachedContext) {
 			if (isPromptFileChatVariable(item) && item.isRoot) {
@@ -1332,7 +1343,7 @@ export class ChatWidget extends Disposable implements IChatWidget {
 				attachedContext: requestInputs.attachedContext,
 				noCommandDetection: options?.noCommandDetection,
 				userSelectedTools: this.getUserSelectedTools(),
-				modeInstructions: this.input.currentMode2.body
+				modeInstructions: this.getModeInstructions()
 			});
 
 			if (result) {

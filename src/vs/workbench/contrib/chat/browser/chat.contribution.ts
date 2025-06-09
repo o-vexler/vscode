@@ -202,6 +202,27 @@ configurationRegistry.registerConfiguration({
 			description: nls.localize('chat.renderRelatedFiles', "Controls whether related files should be rendered in the chat input."),
 			default: false
 		},
+		'chat.customInstructions.ask': {
+			type: 'string',
+			markdownDescription: nls.localize('chat.customInstructions.ask', "Custom instructions for Ask mode. These instructions will be prepended to every request in Ask mode."),
+			default: '',
+			maxLength: 280,
+			scope: ConfigurationScope.RESOURCE,
+		},
+		'chat.customInstructions.edit': {
+			type: 'string',
+			markdownDescription: nls.localize('chat.customInstructions.edit', "Custom instructions for Edit mode. These instructions will be prepended to every request in Edit mode."),
+			default: '',
+			maxLength: 280,
+			scope: ConfigurationScope.RESOURCE,
+		},
+		'chat.customInstructions.agent': {
+			type: 'string',
+			markdownDescription: nls.localize('chat.customInstructions.agent', "Custom instructions for Agent mode. These instructions will be prepended to every request in Agent mode."),
+			default: '',
+			maxLength: 280,
+			scope: ConfigurationScope.RESOURCE,
+		},
 		'chat.notifyWindowOnConfirmation': {
 			type: 'boolean',
 			included: !isLinux, // Linux does not have a mechanism for this

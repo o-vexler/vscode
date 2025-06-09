@@ -111,8 +111,14 @@ export class ModePickerActionItem extends ActionWidgetDropdownActionViewItem {
 			return null;
 		}
 		this.setAriaLabelAttributes(element);
-		const state = this.delegate.getMode().name;
-		dom.reset(element, dom.$('span.chat-model-label', undefined, state), ...renderLabelWithIcons(`$(chevron-down)`));
+		const mode = this.delegate.getMode();
+		const state = mode.name;
+		const hasCustomInstructions = !!mode.customInstructions && mode.customInstructions.trim() !== '';
+		const label = hasCustomInstructions ? `${state} *` : state;
+		dom.reset(element, dom.$('span.chat-model-label', undefined, label), ...renderLabelWithIcons(`$(chevron-down)`));
+		if (hasCustomInstructions) {
+			element.title = localize('customInstructionsActive', "{0} mode with custom instructions", state);
+		}
 		return null;
 	}
 

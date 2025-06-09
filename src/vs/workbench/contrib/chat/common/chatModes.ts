@@ -9,9 +9,10 @@ import { localize } from '../../../../nls.js';
 import { IContextKey, IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
+import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
 import { IChatAgentService } from './chatAgents.js';
 import { ChatContextKeys } from './chatContextKeys.js';
-import { ChatMode, modeToString } from './constants.js';
+import { ChatMode, modeToString, ChatConfiguration } from './constants.js';
 import { ICustomChatMode, IPromptsService } from './promptSyntax/service/promptsService.js';
 
 export const IChatModeService = createDecorator<IChatModeService>('chatModeService');
@@ -36,7 +37,8 @@ export class ChatModeService extends Disposable implements IChatModeService {
 		@IPromptsService private readonly promptsService: IPromptsService,
 		@IChatAgentService private readonly chatAgentService: IChatAgentService,
 		@IContextKeyService contextKeyService: IContextKeyService,
-		@ILogService private readonly logService: ILogService
+		@ILogService private readonly logService: ILogService,
+		@IConfigurationService private readonly configurationService: IConfigurationService
 	) {
 		super();
 
@@ -44,6 +46,14 @@ export class ChatModeService extends Disposable implements IChatModeService {
 		this.hasCustomModes = ChatContextKeys.Modes.hasCustomChatModes.bindTo(contextKeyService);
 		this._register(this.promptsService.onDidChangeCustomChatModes(() => {
 			void this.refreshCustomPromptModes(true);
+		}));
+		// Listen for configuration changes to fire mode change events
+		this._register(this.configurationService.onDidChangeConfiguration(e => {
+			if (e.affectsConfiguration(ChatConfiguration.CustomInstructionsAsk) ||
+				e.affectsConfiguration(ChatConfiguration.CustomInstructionsEdit) ||
+				e.affectsConfiguration(ChatConfiguration.CustomInstructionsAgent)) {
+				this._onDidChangeChatModes.fire();
+			}
 		}));
 	}
 
@@ -72,14 +82,18 @@ export class ChatModeService extends Disposable implements IChatModeService {
 	}
 
 	private getBuiltinModes(): IChatMode[] {
+		const askInstructions = this.configurationService.getValue<string>(ChatConfiguration.CustomInstructionsAsk) || '';
+		const editInstructions = this.configurationService.getValue<string>(ChatConfiguration.CustomInstructionsEdit) || '';
+		const agentInstructions = this.configurationService.getValue<string>(ChatConfiguration.CustomInstructionsAgent) || '';
+
 		const builtinModes: IChatMode[] = [
-			ChatMode2.Ask,
+			new BuiltinChatMode(ChatMode.Ask, localize('chatDescription', "Ask Copilot"), askInstructions),
 		];
 
 		if (this.chatAgentService.hasToolsAgent) {
-			builtinModes.push(ChatMode2.Agent);
+			builtinModes.push(new BuiltinChatMode(ChatMode.Agent, localize('agentDescription', "Edit files in your workspace in agent mode"), agentInstructions));
 		}
-		builtinModes.push(ChatMode2.Edit);
+		builtinModes.push(new BuiltinChatMode(ChatMode.Edit, localize('editsDescription', "Edit files in your workspace"), editInstructions));
 		return builtinModes;
 	}
 }
@@ -94,6 +108,7 @@ export interface IChatMode {
 	readonly kind: ChatMode;
 	readonly customTools?: readonly string[];
 	readonly body?: string;
+	readonly customInstructions?: string;
 }
 
 export function isIChatMode(mode: unknown): mode is IChatMode {
@@ -151,7 +166,8 @@ export class CustomChatMode implements IChatMode {
 export class BuiltinChatMode implements IChatMode {
 	constructor(
 		public readonly kind: ChatMode,
-		public readonly description: string
+		public readonly description: string,
+		public readonly customInstructions?: string
 	) { }
 
 	get id(): string {
@@ -171,7 +187,8 @@ export class BuiltinChatMode implements IChatMode {
 			id: this.id,
 			name: this.name,
 			description: this.description,
-			kind: this.kind
+			kind: this.kind,
+			customInstructions: this.customInstructions
 		};
 	}
 }

@@ -8,6 +8,9 @@ export enum ChatConfiguration {
 	AgentEnabled = 'chat.agent.enabled',
 	Edits2Enabled = 'chat.edits2.enabled',
 	ExtensionToolsEnabled = 'chat.extensionTools.enabled',
+	CustomInstructionsAsk = 'chat.customInstructions.ask',
+	CustomInstructionsEdit = 'chat.customInstructions.edit',
+	CustomInstructionsAgent = 'chat.customInstructions.agent',
 }
 
 export enum ChatMode {
